@@ -1,5 +1,6 @@
 ﻿using Application.IServices;
 using Infrastructure.Identity;
+using Infrastructure.Options;
 using Infrastructure.Persistence.Data;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -43,7 +44,8 @@ namespace Infrastructure
             //.AddDefaultTokenProviders(); 
             
             services.AddScoped<IIdentityService,IdentityService>();
-            
+            services.AddScoped<IEmailService, EmailService>();
+            services.Configure<EmailOptions>(configuration.GetSection("EmailOptions"));            
             return services;
         }
     }

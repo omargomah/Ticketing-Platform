@@ -6,7 +6,7 @@ namespace Domain.Entities
     public class Attendee : Entity, IAggregateRoot
     {
         private readonly List<Booking> _bookings = new();
-        private readonly List<EventReview> _reviews = new();
+        private readonly List<EventReview> _reviews = new();                         
         private readonly List<Preference> _preferences = new();
 
         public string FirstName { get; private set; }
