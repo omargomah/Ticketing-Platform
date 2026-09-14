@@ -1,4 +1,5 @@
-﻿using Application.Auth.LoginUserCommand;
+﻿using Application.Auth.ConfirmEmailCommand;
+using Application.Auth.LoginUserCommand;
 using Application.Auth.RegisterAttendeeCommand;
 using Application.IServices;
 using Domain.Enums;
@@ -53,6 +54,7 @@ namespace Infrastructure.Services
                 return Result.Failure(Error.Create("User.DeletionFailed", string.Join(", ", identityResult.Errors.Select(e => e.Description))));
             return Result.Success();
         }
+
         #region Register
         public async Task<Result<string>> RegisterAsync(RegisterAttendeeCommand registerAttendeeCommand , UserRole Role, CancellationToken cancellationToken)
         {
@@ -77,12 +79,6 @@ namespace Infrastructure.Services
 
             await SendEmailConfirmationMailAsync(user, cancellationToken);
             return Result.Success(user.Id.ToString()); 
-        }
-        private async Task SendEmailConfirmationMailAsync(AppUser user , CancellationToken cancellationToken)
-        {
-            string emailConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            string url = $@"{_configuration["AppUrl"]}/api/Auth/ConfirmEmail?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
-            await _emailService.SendConfirmEmailAsync(user.Email!, url, cancellationToken);
         }
         #endregion
 
@@ -145,6 +141,29 @@ namespace Infrastructure.Services
 
         #endregion
 
+        #region Email Confirmation
+        public async Task<Result> ConfirmEmailAsync(ConfirmEmailCommand command)
+        {
+            AppUser? user = await _userManager.FindByIdAsync(command.userId);
+
+            if (user is null)
+                return Result.Failure(Error.Create("User.NotFound", "User not found"));
+
+            IdentityResult confirmEmailResult = await _userManager.ConfirmEmailAsync(user, command.token);
+
+            if (!confirmEmailResult.Succeeded)
+                return Result.Failure(Error.Create("User.ConfirmEmailFailed", "Failed to confirm email"));
+                                                                                                          
+            return Result.Success();
+        }
+        private async Task SendEmailConfirmationMailAsync(AppUser user , CancellationToken cancellationToken)
+        {
+            // i don't add the version in url take care if not check it ,but it should take the default value of version that is v1
+            string emailConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            string url = $@"{_configuration["AppUrl"]}/api/Auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
+            await _emailService.SendConfirmEmailAsync(user.Email!, url, cancellationToken);
+        }
+        #endregion
 
 
     }

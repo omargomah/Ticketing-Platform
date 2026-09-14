@@ -1,23 +1,28 @@
-﻿using Application.Auth.LoginUserCommand;
+﻿using Application.Auth.ConfirmEmailCommand;
+using Application.Auth.LoginUserCommand;
 using Application.Auth.RegisterAttendeeCommand;
 using Asp.Versioning;
 using Azure.Core;
 using Domain.Shared;
+using Infrastructure.Options;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace API.Controllers
 {
     [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
-    [ApiVersion("2.0")]
+    [ApiVersion("1.0")]
     public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IOptionsSnapshot<JwtOptions> _jwtOptions;
 
-        public AuthController(IMediator mediator)
+        public AuthController(IMediator mediator,IOptionsSnapshot<JwtOptions> jwtOptions)
         {
             _mediator = mediator;
+            _jwtOptions = jwtOptions;
         }
      
         [HttpPost("register-attendee")]
@@ -47,14 +52,24 @@ namespace API.Controllers
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(7)
+                Expires = DateTime.UtcNow.AddDays(_jwtOptions.Value.RefreshTokenExpireAfterDays)
             };
+
             Response.Cookies.Append("refreshToken", result.Value?.RefreshToken!, cookieOptions);
 
             return Ok(result);
         }
 
+        [HttpGet]
+        [Route("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromQuery] ConfirmEmailCommand command, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(command, cancellationToken);
+            if (result.IsFail)
+                return BadRequest(result);
 
+            return Ok(result);
+        }
 
     }
 }
