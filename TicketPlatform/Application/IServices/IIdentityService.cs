@@ -1,12 +1,20 @@
-﻿using Application.Auth.RegisterAttendeeCommand;
+﻿using Application.Auth.ConfirmEmailCommand;
+using Application.Auth.LoginUserCommand;
+using Application.Auth.RegisterAttendeeCommand;
+using Application.Auth.ResetPasswordCommand;
+using Domain.Enums;
 using Domain.Shared;
-
 namespace Application.IServices
 {
     public interface IIdentityService
     {
         Task<bool> CheckEmailIsUniqueAsync(string email, CancellationToken token);
-        Task<Result> Register(RegisterAttendeeCommand registerAttendeeCommand, CancellationToken cancellationToken);
+        Task<Result<string>> RegisterAsync(RegisterAttendeeCommand registerAttendeeCommand, UserRole Role ,CancellationToken cancellationToken);
+        Task<Result> DeleteAppUserAsync(string userId, CancellationToken cancellationToken);
+        Task<Result<LoginResponse>> LoginUserAsync(LoginCommand loginRequest);
+        Task<Result> ConfirmEmailAsync(ConfirmEmailCommand command);
+        Task SendResetPasswordEmailAsync(string email, CancellationToken cancellationToken);
+        Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellation);
 
     }
 }
