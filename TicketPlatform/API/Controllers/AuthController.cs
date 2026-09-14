@@ -1,6 +1,8 @@
 ﻿using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
 using Application.Auth.RegisterAttendeeCommand;
+using Application.Auth.ResetPasswordCommand;
+using Application.Auth.SendResetPasswordEmailCommand;
 using Asp.Versioning;
 using Azure.Core;
 using Domain.Shared;
@@ -68,6 +70,22 @@ namespace API.Controllers
             if (result.IsFail)
                 return BadRequest(result);
 
+            return Ok(result);
+        }
+        [HttpPost]
+        [Route("send-reset-password-email")]
+        public async Task<IActionResult> SendResetPasswordEmail([FromBody] SendResetPasswordEmailCommand command, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(command, cancellationToken);
+            return Ok();
+        }
+        [HttpPost]
+        [Route("reset-password")]
+        public async Task<ActionResult<Result>> ResetPassword([FromBody] ResetPasswordCommand command, CancellationToken cancellationToken)
+        {
+            Result result = await _mediator.Send(command, cancellationToken);
+            if (!result.IsSuccess)
+                return BadRequest(result);
             return Ok(result);
         }
 

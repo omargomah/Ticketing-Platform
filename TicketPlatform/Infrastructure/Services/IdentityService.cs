@@ -1,6 +1,7 @@
 ﻿using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
 using Application.Auth.RegisterAttendeeCommand;
+using Application.Auth.ResetPasswordCommand;
 using Application.IServices;
 using Domain.Enums;
 using Domain.Shared;
@@ -162,6 +163,27 @@ namespace Infrastructure.Services
             string emailConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             string url = $@"{_configuration["AppUrl"]}/api/Auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
             await _emailService.SendConfirmEmailAsync(user.Email!, url, cancellationToken);
+        }
+        #endregion
+
+        #region Reset Password
+        public async Task SendResetPasswordEmailAsync(string email, CancellationToken cancellationToken)
+        {
+            AppUser? user = await _userManager.FindByEmailAsync(email);
+            if (user is null)
+                return;
+            string token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            string resetPasswordToken = Uri.EscapeDataString(token);
+            string url = $"{_configuration["FrontUrl"]}/Auth/reset-password?userId={user.Id}&token={Uri.EscapeDataString(resetPasswordToken)}";
+            await _emailService.SendResetPasswordEmailAsync(user.Email!, url, cancellationToken);
+        }
+        public async Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellation)
+        {
+            AppUser? user = await _userManager.FindByIdAsync(command.UserId);
+            if (user is null)
+                return Result.Failure(Error.Create("User.NotFound", "User not found"));
+            IdentityResult result = await _userManager.ResetPasswordAsync(user, command.Token, command.NewPassword);
+            return result.Succeeded ? Result.Success() : Result.Failure(Error.Create("User.ResetPasswordFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
         }
         #endregion
 
