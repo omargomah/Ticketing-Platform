@@ -55,7 +55,7 @@ namespace API
                 }).AddApiExplorer( options =>
                 {
                     options.GroupNameFormat = "'v'VVV";
-                    options.SubstituteApiVersionInUrl = false;
+                    options.SubstituteApiVersionInUrl = true;
                 });
 
 

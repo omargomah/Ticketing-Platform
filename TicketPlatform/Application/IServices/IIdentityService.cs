@@ -6,7 +6,8 @@ namespace Application.IServices
     public interface IIdentityService
     {
         Task<bool> CheckEmailIsUniqueAsync(string email, CancellationToken token);
-        Task<Result> Register(RegisterAttendeeCommand registerAttendeeCommand, CancellationToken cancellationToken);
+        Task<Result<string>> RegisterAsync(RegisterAttendeeCommand registerAttendeeCommand, CancellationToken cancellationToken);
+        Task<Result> DeleteAppUserAsync(string userId, CancellationToken cancellationToken);
 
     }
 }

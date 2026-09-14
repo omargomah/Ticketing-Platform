@@ -27,7 +27,17 @@ namespace Infrastructure.Services
             return user == null;
         }
 
-        public async Task<Result> Register(RegisterAttendeeCommand registerAttendeeCommand, CancellationToken cancellationToken)
+        public async Task<Result> DeleteAppUserAsync(string userId , CancellationToken cancellationToken)
+        {
+            AppUser? user = await _userManager.FindByIdAsync(userId);
+            if (user is null)
+                return Result.Failure(Error.Create("User.NotFound", "User not found"));
+            IdentityResult identityResult = await _userManager.DeleteAsync(user);
+            if (!identityResult.Succeeded)
+                return Result.Failure(Error.Create("User.DeletionFailed", string.Join(", ", identityResult.Errors.Select(e => e.Description))));
+            return Result.Success();
+        }
+        public async Task<Result<string>> RegisterAsync(RegisterAttendeeCommand registerAttendeeCommand, CancellationToken cancellationToken)
         {
             AppUser user = new AppUser()
             {
@@ -36,15 +46,15 @@ namespace Infrastructure.Services
             };
             IdentityResult result = await _userManager.CreateAsync(user, registerAttendeeCommand.Password);
             if (!result.Succeeded)
-                Result.Failure(Error.Create("User.RegistrationFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
-            string url = await GenerateEmailConfirmationUrl(user);
-            await _emailService.SendConfirmEmailAsync(user.Email, url, cancellationToken);
-            return Result.Success(user.Id); 
+                return Result.Failure<string>(Error.Create("User.RegistrationFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
+            await SendEmailConfirmationMailAsync(user, cancellationToken);
+            return Result.Success(user.Id.ToString()); 
         }
-        private async Task<string> GenerateEmailConfirmationUrl(AppUser user)
+        private async Task SendEmailConfirmationMailAsync(AppUser user , CancellationToken cancellationToken)
         {
             string emailConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            return $@"{_configuration["AppUrl"]}/api/Auth/ConfirmEmail?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
+            string url = $@"{_configuration["AppUrl"]}/api/Auth/ConfirmEmail?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
+            await _emailService.SendConfirmEmailAsync(user.Email!, url, cancellationToken);
         }
 
 
