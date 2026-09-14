@@ -1,7 +1,9 @@
 ﻿using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
 using Application.Auth.RegisterAttendeeCommand;
+using Application.Auth.RegisterOrganizerCommand;
 using Application.Auth.ResetPasswordCommand;
+using Application.Auth.SendConfirmEmailCommand;
 using Application.Auth.SendResetPasswordEmailCommand;
 using Asp.Versioning;
 using Azure.Core;
@@ -41,6 +43,16 @@ namespace API.Controllers
                 return Ok(result);
             return BadRequest(result);
         }
+        [HttpPost("register-organizer")]
+        public async Task<ActionResult<Result>> RegisterOrganizer([FromBody] RegisterOrganizerCommand command, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(command, cancellationToken);
+            
+            if (result.IsSuccess)
+                return Ok(result);
+            
+            return BadRequest(result);
+        }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
@@ -62,6 +74,14 @@ namespace API.Controllers
             return Ok(result);
         }
 
+        [HttpPost]
+        [Route("send-confirm-email")]
+        public async Task<IActionResult> SendConfirmEmail([FromBody] SendConfirmEmailCommand command, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(command, cancellationToken);
+            return Ok();
+        }
+
         [HttpGet]
         [Route("confirm-email")]
         public async Task<IActionResult> ConfirmEmail([FromQuery] ConfirmEmailCommand command, CancellationToken cancellationToken)
@@ -72,6 +92,7 @@ namespace API.Controllers
 
             return Ok(result);
         }
+        
         [HttpPost]
         [Route("send-reset-password-email")]
         public async Task<IActionResult> SendResetPasswordEmail([FromBody] SendResetPasswordEmailCommand command, CancellationToken cancellationToken)
@@ -79,6 +100,7 @@ namespace API.Controllers
             await _mediator.Send(command, cancellationToken);
             return Ok();
         }
+    
         [HttpPost]
         [Route("reset-password")]
         public async Task<ActionResult<Result>> ResetPassword([FromBody] ResetPasswordCommand command, CancellationToken cancellationToken)

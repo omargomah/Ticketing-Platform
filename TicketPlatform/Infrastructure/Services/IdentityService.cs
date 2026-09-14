@@ -1,7 +1,9 @@
 ﻿using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
 using Application.Auth.RegisterAttendeeCommand;
+using Application.Auth.RegisterOrganizerCommand;
 using Application.Auth.ResetPasswordCommand;
+using Application.Auth.SendConfirmEmailCommand;
 using Application.IServices;
 using Domain.Enums;
 using Domain.Shared;
@@ -57,14 +59,14 @@ namespace Infrastructure.Services
         }
 
         #region Register
-        public async Task<Result<string>> RegisterAsync(RegisterAttendeeCommand registerAttendeeCommand , UserRole Role, CancellationToken cancellationToken)
+        public async Task<Result<string>> RegisterAsync(string email , string password , UserRole Role, CancellationToken cancellationToken)
         {
             AppUser user = new AppUser()
             {
-                Email = registerAttendeeCommand.Email,
-                UserName = registerAttendeeCommand.Email,
+                Email = email,
+                UserName = email,
             };
-            IdentityResult result = await _userManager.CreateAsync(user, registerAttendeeCommand.Password);
+            IdentityResult result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
                 return Result.Failure<string>(Error.Create("User.RegistrationFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
             
@@ -78,7 +80,7 @@ namespace Infrastructure.Services
                 return Result.Failure<string>(Error.Create("User.RegistrationFailed", string.Join(", ", addRoleResult.Errors.Select(e => e.Description))));
             }
 
-            await SendEmailConfirmationMailAsync(user, cancellationToken);
+            await SendConfirmEmailAsync(user, cancellationToken);
             return Result.Success(user.Id.ToString()); 
         }
         #endregion
@@ -157,7 +159,14 @@ namespace Infrastructure.Services
                                                                                                           
             return Result.Success();
         }
-        private async Task SendEmailConfirmationMailAsync(AppUser user , CancellationToken cancellationToken)
+        public async Task SendConfirmEmailAsync(SendConfirmEmailCommand command, CancellationToken cancellationToken)
+        {
+            AppUser? user = await _userManager.FindByEmailAsync(command.Email);
+            if (user is null)
+                return;
+            await SendConfirmEmailAsync(user, cancellationToken);
+        }
+        private async Task SendConfirmEmailAsync(AppUser user , CancellationToken cancellationToken)
         {
             // i don't add the version in url take care if not check it ,but it should take the default value of version that is v1
             string emailConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
