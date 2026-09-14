@@ -1,5 +1,8 @@
-﻿using Application.Auth.RegisterAttendeeCommand;
+﻿using Application.Auth.LoginUserCommand;
+using Application.Auth.RegisterAttendeeCommand;
 using Asp.Versioning;
+using Azure.Core;
+using Domain.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,12 +27,31 @@ namespace API.Controllers
         /// <param name="command">The command containing attendee information</param>
         /// <param name="cancellationToken">The cancellation token</param>
         /// <returns>The result of the registration</returns>
-        public async Task<IActionResult> RegisterAttendee([FromBody] RegisterAttendeeCommand command, CancellationToken cancellationToken)
+        public async Task<ActionResult<Result>> RegisterAttendee([FromBody] RegisterAttendeeCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
             if (result.IsSuccess)
                 return Ok(result);
             return BadRequest(result);
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(command, cancellationToken);
+            if (result.IsFail)
+                return BadRequest(result);
+
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("refreshToken", result.Value?.RefreshToken!, cookieOptions);
+
+            return Ok(result);
         }
 
 

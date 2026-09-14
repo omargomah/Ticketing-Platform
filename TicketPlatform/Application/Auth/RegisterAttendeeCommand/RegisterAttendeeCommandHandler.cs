@@ -1,5 +1,6 @@
 ﻿using Application.IServices;
 using Domain.Entities;
+using Domain.Enums;
 using Domain.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -22,8 +23,8 @@ namespace Application.Auth.RegisterAttendeeCommand
         public async Task<Result> Handle(RegisterAttendeeCommand request, CancellationToken cancellationToken)
         {
             // create identity user
-            Result<string> createAppUserResult = await _identityService.RegisterAsync(request,cancellationToken);
-            if(!createAppUserResult.IsSuccess)
+            Result<string> createAppUserResult = await _identityService.RegisterAsync(request, UserRole.Attendee, cancellationToken);
+            if(createAppUserResult.IsFail)
                 return createAppUserResult;
             
             //create attendee
