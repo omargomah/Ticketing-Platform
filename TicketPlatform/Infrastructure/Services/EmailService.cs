@@ -7,11 +7,11 @@ using MimeKit;
 
 namespace Infrastructure.Services
 {
-    public class EmailServices : IEmailService
+    public class EmailService : IEmailService
     {
         private readonly IOptionsSnapshot<EmailOptions> _mailOptions;
 
-        public EmailServices(IOptionsSnapshot<EmailOptions> mailOptions)
+        public EmailService(IOptionsSnapshot<EmailOptions> mailOptions)
         {
             _mailOptions = mailOptions;
         }
