@@ -13,6 +13,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<Attendee> Attendees => Set<Attendee>();
         public DbSet<Organizer> Organizers => Set<Organizer>();
         public DbSet<Preference> Preferences => Set<Preference>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

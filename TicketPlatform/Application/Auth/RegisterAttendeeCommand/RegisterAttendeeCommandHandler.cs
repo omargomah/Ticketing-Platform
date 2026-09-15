@@ -23,7 +23,7 @@ namespace Application.Auth.RegisterAttendeeCommand
         public async Task<Result> Handle(RegisterAttendeeCommand request, CancellationToken cancellationToken)
         {
             // create identity user
-            Result<string> createAppUserResult = await _identityService.RegisterAsync(request, UserRole.Attendee, cancellationToken);
+            Result<string> createAppUserResult = await _identityService.RegisterAsync(request.Email,request.Password, UserRole.Attendee, cancellationToken);
             if(createAppUserResult.IsFail)
                 return createAppUserResult;
             
