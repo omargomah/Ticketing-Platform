@@ -68,5 +68,15 @@ namespace Infrastructure.Services
             MimeMessage mailMessage = CreateMimeMessage(to, subject, body);
             await SendEmailAsync(mailMessage, cancellationToken);
         }
+
+        public async Task SendWarningEmailThatRefreshTokenStealAsync(string to, CancellationToken cancellationToken)
+        {
+            string body = $@"warning your refresh token has been stolen.
+                             Reset your password immediately.";
+            string subject = "Warning: Refresh Token Theft";
+            MimeMessage mailMessage = CreateMimeMessage(to, subject, body);
+            await SendEmailAsync(mailMessage, cancellationToken);
+        }
+
     }
 }
