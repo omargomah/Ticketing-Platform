@@ -1,7 +1,10 @@
 ﻿using Application.IServices;
+using Domain.Interfaces;
+using Domain.Interfaces.IRepositories;
 using Infrastructure.Identity;
 using Infrastructure.Options;
 using Infrastructure.Persistence.Data;
+using Infrastructure.Persistence.Repositories;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -80,6 +83,10 @@ namespace Infrastructure
             });
             #endregion
 
+            #region Repository Registeration
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            #endregion
 
             return services;
         }

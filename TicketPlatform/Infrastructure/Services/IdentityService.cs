@@ -5,7 +5,10 @@ using Application.Auth.RegisterOrganizerCommand;
 using Application.Auth.ResetPasswordCommand;
 using Application.Auth.SendConfirmEmailCommand;
 using Application.IServices;
+using Domain.Entities;
 using Domain.Enums;
+using Domain.Interfaces;
+using Domain.Interfaces.IRepositories;
 using Domain.Shared;
 using Infrastructure.Identity;
 using Infrastructure.Options;
@@ -28,18 +31,24 @@ namespace Infrastructure.Services
         private readonly IEmailService _emailService;
         private readonly IOptionsSnapshot<JwtOptions> _jwtConfiguration;
         private readonly ILogger<IdentityService> _logger;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
         public IdentityService(UserManager<AppUser> userManager ,
             IConfiguration configuration ,
             IEmailService emailService ,
             IOptionsSnapshot<JwtOptions> jwtConfiguration , 
-            ILogger<IdentityService> logger)
+            ILogger<IdentityService> logger,
+            IRefreshTokenRepository refreshTokenRepository,
+            IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
             _configuration = configuration;
             _emailService = emailService;
             _jwtConfiguration = jwtConfiguration;
             _logger = logger;
+            _refreshTokenRepository = refreshTokenRepository;
+            _unitOfWork = unitOfWork;
         }
         public async Task<bool> CheckEmailIsUniqueAsync(string email, CancellationToken token)
         {
@@ -87,6 +96,45 @@ namespace Infrastructure.Services
 
         #region Login
 
+        public async Task<Result<LoginResponse>> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
+        {
+            RefreshToken? refreshTokeWillRevoked=  await _refreshTokenRepository.GetRefreshTokenAsync(refreshToken, cancellationToken);    
+        
+            if(refreshTokeWillRevoked is null)
+                return Result.Failure<LoginResponse>(Error.Create("User.RefreshTokenNotFound", "Refresh Token Not Found"));
+            
+            if (refreshTokeWillRevoked.IsExpired && refreshTokeWillRevoked.RevokedOn is not null)
+            {
+                refreshTokeWillRevoked.Revoke();
+                _refreshTokenRepository.Update(refreshTokeWillRevoked);
+                await _unitOfWork.SaveChangesAsync();
+                                                                                       
+                return Result.Failure<LoginResponse>(Error.Create("User.RefreshTokenRevoked", "Refresh Token Revoked"));
+            }
+            
+            AppUser user = (await _userManager.FindByIdAsync(refreshTokeWillRevoked.UserId.ToString()))!;
+            if (refreshTokeWillRevoked.IsActive)
+            {
+
+                RefreshToken newRefreshToken = RefreshToken.Create(user.Id, DateTime.UtcNow.AddDays(_jwtConfiguration.Value.RefreshTokenExpireAfterDays));
+                try
+                {
+                    refreshTokeWillRevoked.Revoke();
+                    _refreshTokenRepository.Update(refreshTokeWillRevoked);
+                    await _refreshTokenRepository.AddAsync(newRefreshToken, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, "An error occurred while refreshing the token.");
+                    throw;
+                }
+                return Result.Success(new LoginResponse(true, null!, newRefreshToken.Token, await GenerateAccessTokenAsync(user)));
+            }
+
+            await _emailService.SendWarningEmailThatRefreshTokenStealAsync(user.Email!,cancellationToken);
+            return Result.Failure<LoginResponse>(Error.Create("User.RefreshTokenExpired", "Refresh Token Expired"));
+        }
         public async Task<Result<LoginResponse>> LoginUserAsync(LoginCommand loginRequest)
         {
             AppUser? user = await _userManager.FindByEmailAsync(loginRequest.Email);
@@ -101,7 +149,9 @@ namespace Infrastructure.Services
             if (_userManager.Options.SignIn.RequireConfirmedEmail && !await _userManager.IsEmailConfirmedAsync(user))
                 return Result.Failure<LoginResponse>(Error.Create("User.EmailNotConfirmed", "You Need to Confirm your Email"));
 
-            return Result.Success(new LoginResponse(true, null! , GenerateRefreshToken(user), await GenerateAccessTokenAsync(user)));
+            RefreshToken refreshToken = RefreshToken.Create(user.Id,DateTime.UtcNow.AddDays(_jwtConfiguration.Value.RefreshTokenExpireAfterDays));
+
+            return Result.Success(new LoginResponse(true, null! , refreshToken.Token , await GenerateAccessTokenAsync(user)));
         }
         private string GenerateJwtToken(IEnumerable<Claim> claims, TimeSpan expiresIn)
         {
@@ -131,15 +181,15 @@ namespace Infrastructure.Services
 
             return GenerateJwtToken(claims, TimeSpan.FromMinutes(_jwtConfiguration.Value.AccessTokenExpireAfterMinutes));
         }
-        private string GenerateRefreshToken(AppUser user)
-        {
-            IEnumerable<Claim> claims =
-                    [
-                        new Claim(ClaimTypes.NameIdentifier,user.Id.ToString()),
-                        new Claim("TokenType","Refresh"),
-                    ];
-            return GenerateJwtToken(claims, TimeSpan.FromDays(_jwtConfiguration.Value.RefreshTokenExpireAfterDays));
-        }
+        //private string GenerateRefreshToken(AppUser user)
+        //{
+        //    IEnumerable<Claim> claims =
+        //            [
+        //                new Claim(ClaimTypes.NameIdentifier,user.Id.ToString()),
+        //                new Claim("TokenType","Refresh"),
+        //            ];
+        //    return GenerateJwtToken(claims, TimeSpan.FromDays(_jwtConfiguration.Value.RefreshTokenExpireAfterDays));
+        //}
 
 
         #endregion
@@ -192,10 +242,25 @@ namespace Infrastructure.Services
             if (user is null)
                 return Result.Failure(Error.Create("User.NotFound", "User not found"));
             IdentityResult result = await _userManager.ResetPasswordAsync(user, command.Token, command.NewPassword);
-            return result.Succeeded ? Result.Success() : Result.Failure(Error.Create("User.ResetPasswordFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
+            if (!result.Succeeded)
+                return  Result.Failure(Error.Create("User.ResetPasswordFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
+            await _refreshTokenRepository.DeleteRefreshTokensByUserIdAsync(user.Id);
+            return  Result.Success() ;
         }
         #endregion
 
-
+        #region Logout
+        public async Task LogoutAsync(string refreshToken , CancellationToken cancellationToken)
+        {
+            RefreshToken? token = await _refreshTokenRepository.GetRefreshTokenAsync(refreshToken, cancellationToken);
+            if (token is not null)
+            {
+                token.Revoke();
+                _refreshTokenRepository.Update(token);
+                await _unitOfWork.SaveChangesAsync();
+            }
+        }
+        
+        #endregion
     }
 }

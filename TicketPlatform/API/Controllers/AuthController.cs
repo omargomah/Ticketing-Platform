@@ -1,16 +1,19 @@
 ﻿using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
+using Application.Auth.LogoutCommand;
+using Application.Auth.RefreshTokenCommand;
 using Application.Auth.RegisterAttendeeCommand;
 using Application.Auth.RegisterOrganizerCommand;
 using Application.Auth.ResetPasswordCommand;
 using Application.Auth.SendConfirmEmailCommand;
 using Application.Auth.SendResetPasswordEmailCommand;
 using Asp.Versioning;
-using Azure.Core;
 using Domain.Shared;
 using Infrastructure.Options;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace API.Controllers
@@ -30,12 +33,6 @@ namespace API.Controllers
         }
      
         [HttpPost("register-attendee")]
-        /// <summary>
-        /// Registers a new attendee
-        /// </summary>
-        /// <param name="command">The command containing attendee information</param>
-        /// <param name="cancellationToken">The cancellation token</param>
-        /// <returns>The result of the registration</returns>
         public async Task<ActionResult<Result>> RegisterAttendee([FromBody] RegisterAttendeeCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
@@ -59,7 +56,7 @@ namespace API.Controllers
         {
             var result = await _mediator.Send(command, cancellationToken);
             if (result.IsFail)
-                return BadRequest(result);
+                return Unauthorized(result);
 
             var cookieOptions = new CookieOptions
             {
@@ -109,6 +106,47 @@ namespace API.Controllers
             if (!result.IsSuccess)
                 return BadRequest(result);
             return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            string? refreshToken =  Request.Cookies["refreshToken"];
+           if(string.IsNullOrWhiteSpace(refreshToken))
+                return Unauthorized();
+            Result<LoginResponse> refreshResult = await _mediator.Send(new RefreshTokenCommand(refreshToken));
+        if(refreshResult.IsFail)
+                return Unauthorized(refreshResult);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(_jwtOptions.Value.RefreshTokenExpireAfterDays)
+            };
+            Response.Cookies.Append("refreshToken", refreshResult.Value?.RefreshToken!, cookieOptions);
+            return Ok(refreshResult);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            string? providedToken = Request.Cookies["refreshToken"];
+            if (!string.IsNullOrEmpty(providedToken))
+            {
+                await _mediator.Send(new LogoutCommand(providedToken));
+                Response.Cookies.Delete("refreshToken", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict
+                });
+            }
+
+            return Ok();
         }
 
     }

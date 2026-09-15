@@ -1,7 +1,5 @@
 ﻿using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
-using Application.Auth.RegisterAttendeeCommand;
-using Application.Auth.RegisterOrganizerCommand;
 using Application.Auth.ResetPasswordCommand;
 using Application.Auth.SendConfirmEmailCommand;
 using Domain.Enums;
@@ -18,6 +16,7 @@ namespace Application.IServices
         Task SendResetPasswordEmailAsync(string email, CancellationToken cancellationToken);
         Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellation);
         Task SendConfirmEmailAsync(SendConfirmEmailCommand command, CancellationToken cancellationToken);
-
+        Task<Result<LoginResponse>> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken);
+        Task LogoutAsync(string refreshToken, CancellationToken cancellationToken);
     }
 }
