@@ -1,6 +1,8 @@
 ﻿using Application.IServices;
 using Domain.Entities;
 using Domain.Enums;
+using Domain.Interfaces;
+using Domain.Interfaces.IRepositories;
 using Domain.Shared;
 using Domain.ValueObjects;
 using MediatR;
@@ -12,11 +14,18 @@ namespace Application.Auth.RegisterOrganizerCommand
     {
         private readonly IIdentityService _identityService;
         private readonly ILogger<RegisterOrganizerCommandHandler> _logger;
+        private readonly IOrganizerRepository _organizerRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public RegisterOrganizerCommandHandler(IIdentityService identityService ,ILogger<RegisterOrganizerCommandHandler> logger)
+        public RegisterOrganizerCommandHandler(IIdentityService identityService ,
+            ILogger<RegisterOrganizerCommandHandler> logger,
+            IOrganizerRepository organizerRepository,
+            IUnitOfWork unitOfWork)
         {
             _identityService = identityService;
             _logger = logger;
+            _organizerRepository = organizerRepository;
+            _unitOfWork = unitOfWork;
         }
         public async Task<Result> Handle(RegisterOrganizerCommand request, CancellationToken cancellationToken)
         {
@@ -35,10 +44,15 @@ namespace Application.Auth.RegisterOrganizerCommand
                 return createAppUserResult;
             
             //create organizer
-            Result organizerResult = Organizer.Create(request.Name, taxRegistrationNumberCreateResult.Value!, BankIbanResult.Value!);
+            Result<Organizer> organizerResult = Organizer.Create(request.Name, taxRegistrationNumberCreateResult.Value!, BankIbanResult.Value!);
 
             if (organizerResult.IsSuccess)
-                return organizerResult;
+            {
+                await _organizerRepository.AddAsync(organizerResult.Value!);
+                if (await _unitOfWork.SaveChangesAsync() > 0)
+                    return organizerResult;                
+            }
+
 
             // if organizer creation fails, delete the created identity user
             _logger.LogError(organizerResult.Error.Message);
