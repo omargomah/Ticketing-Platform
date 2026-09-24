@@ -151,7 +151,7 @@ namespace Infrastructure.Services
 
             RefreshToken refreshToken = RefreshToken.Create(user.Id,DateTime.UtcNow.AddDays(_jwtConfiguration.Value.RefreshTokenExpireAfterDays));
 
-            return Result.Success(new LoginResponse(true, null! , refreshToken.Token , await GenerateAccessTokenAsync(user)));
+            return Result.Success(new LoginResponse(true,RefreshToken:refreshToken.Token , AccessToken: await GenerateAccessTokenAsync(user)));
         }
         private string GenerateJwtToken(IEnumerable<Claim> claims, TimeSpan expiresIn)
         {
@@ -220,7 +220,7 @@ namespace Infrastructure.Services
         {
             // i don't add the version in url take care if not check it ,but it should take the default value of version that is v1
             string emailConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            string url = $@"{_configuration["AppUrl"]}/api/Auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
+            string url = $@"{_configuration["AppUrl"]}/Auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(emailConfirmToken)}";
             await _emailService.SendConfirmEmailAsync(user.Email!, url, cancellationToken);
         }
         #endregion
