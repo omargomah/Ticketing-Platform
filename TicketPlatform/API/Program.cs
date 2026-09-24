@@ -6,6 +6,7 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Infrastructure;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
@@ -65,6 +66,25 @@ namespace API
                     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                     options.IncludeXmlComments(xmlPath);
+                    // 1. Add the "Authorize" button to Swagger UI
+                    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                    {
+                        Name = "Authorization",
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "Bearer",
+                        BearerFormat = "JWT",
+                        In = ParameterLocation.Header,
+                        Description = "Enter your JWT token directly below.\n\nExample: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    });
+
+                    // 2. Require the token for all API endpoints
+                    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecuritySchemeReference("Bearer", document),
+                            []
+                        }
+                    });
                 });
                 builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 
