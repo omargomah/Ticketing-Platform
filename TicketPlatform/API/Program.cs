@@ -6,6 +6,7 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Infrastructure;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
@@ -37,6 +38,7 @@ namespace API
                 builder.Services.AddInfrastructureRegisteration(builder.Configuration);
                 builder.Services.AddApplicationRegistrations();
 
+                // add the problem details middleware and the global exception handler
                 builder.Services.AddProblemDetails();
                 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             
@@ -51,7 +53,7 @@ namespace API
                     options.DefaultApiVersion = new ApiVersion(1, 0);
                     options.AssumeDefaultVersionWhenUnspecified = true;
                     options.ReportApiVersions = true;
-                    options.ApiVersionReader = ApiVersionReader.Combine(new HeaderApiVersionReader("x-version"));
+                    //options.ApiVersionReader = ApiVersionReader.Combine(new HeaderApiVersionReader("x-version"));
                 }).AddApiExplorer( options =>
                 {
                     options.GroupNameFormat = "'v'VVV";
@@ -64,6 +66,25 @@ namespace API
                     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                     options.IncludeXmlComments(xmlPath);
+                    // 1. Add the "Authorize" button to Swagger UI
+                    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                    {
+                        Name = "Authorization",
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "Bearer",
+                        BearerFormat = "JWT",
+                        In = ParameterLocation.Header,
+                        Description = "Enter your JWT token directly below.\n\nExample: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    });
+
+                    // 2. Require the token for all API endpoints
+                    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecuritySchemeReference("Bearer", document),
+                            []
+                        }
+                    });
                 });
                 builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 
@@ -98,6 +119,7 @@ namespace API
                 app.UseHttpsRedirection();
             
                 app.UseAuthorization();
+              
                 app.UseExceptionHandler();
 
                 app.MapControllers();

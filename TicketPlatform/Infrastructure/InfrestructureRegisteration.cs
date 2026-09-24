@@ -86,6 +86,8 @@ namespace Infrastructure
             #region Repository Registeration
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            services.AddScoped<IAttendeeRepository, AttendeeRepository>();
+            services.AddScoped<IOrganizerRepository, OrganizerRepository>();
             #endregion
 
             return services;
