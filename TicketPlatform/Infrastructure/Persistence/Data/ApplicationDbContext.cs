@@ -1,5 +1,7 @@
 ﻿using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Identity;
+using Infrastructure.Persistence.DataSeeding;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +21,9 @@ namespace Infrastructure.Persistence.Data
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+            modelBuilder.AddSeedingDataOfRoles();
         }
+
+     
     }
 }

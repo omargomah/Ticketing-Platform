@@ -1,6 +1,8 @@
 ﻿using Application.IServices;
 using Domain.Entities;
 using Domain.Enums;
+using Domain.Interfaces;
+using Domain.Interfaces.IRepositories;
 using Domain.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -14,11 +16,18 @@ namespace Application.Auth.RegisterAttendeeCommand
     {
         private readonly IIdentityService _identityService;
         private readonly ILogger<RegisterAttendeeCommandHandler> _logger;
+        private readonly IAttendeeRepository _attendeeRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public RegisterAttendeeCommandHandler(IIdentityService identityService ,ILogger<RegisterAttendeeCommandHandler> logger)
+        public RegisterAttendeeCommandHandler(IIdentityService identityService ,
+            ILogger<RegisterAttendeeCommandHandler> logger ,
+            IAttendeeRepository attendeeRepository,
+            IUnitOfWork unitOfWork)
         {
             _identityService = identityService;
             _logger = logger;
+            _attendeeRepository = attendeeRepository;
+            _unitOfWork = unitOfWork;
         }
         public async Task<Result> Handle(RegisterAttendeeCommand request, CancellationToken cancellationToken)
         {
@@ -28,9 +37,13 @@ namespace Application.Auth.RegisterAttendeeCommand
                 return createAppUserResult;
             
             //create attendee
-            Result attendeeResult = Attendee.Create(request.FName, request.LName);
-            if(attendeeResult.IsSuccess)
-                return attendeeResult;
+            Result<Attendee> attendeeResult = Attendee.Create(request.FName, request.LName);
+            if (attendeeResult.IsSuccess)
+            {
+                await _attendeeRepository.AddAsync(attendeeResult.Value!);
+                if (await _unitOfWork.SaveChangesAsync() > 0)
+                    return attendeeResult;
+            }
 
             // if attendee creation fails, delete the created identity user
             _logger.LogError(attendeeResult.Error.Message);
