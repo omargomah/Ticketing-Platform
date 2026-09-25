@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Auth.RegisterOrganizerCommand
 {
-    public class RegisterOrganizerCommandHandler : IRequestHandler<RegisterOrganizerCommand, Result>
+    public class RegisterOrganizerCommandHandler : IRequestHandler<RegisterOrganizerCommand, Result<Organizer>>
     {
         private readonly IIdentityService _identityService;
         private readonly ILogger<RegisterOrganizerCommandHandler> _logger;
@@ -27,21 +27,21 @@ namespace Application.Auth.RegisterOrganizerCommand
             _organizerRepository = organizerRepository;
             _unitOfWork = unitOfWork;
         }
-        public async Task<Result> Handle(RegisterOrganizerCommand request, CancellationToken cancellationToken)
+        public async Task<Result<Organizer>> Handle(RegisterOrganizerCommand request, CancellationToken cancellationToken)
         {
             Result<TaxRegistrationNumber> taxRegistrationNumberCreateResult = TaxRegistrationNumber.Create(request.TaxRegistrationNumber);
             if (taxRegistrationNumberCreateResult.IsFail)
-                return taxRegistrationNumberCreateResult;
+                return Result.Failure<Organizer>(taxRegistrationNumberCreateResult.Error!);
             
             Result<BankIban> BankIbanResult = BankIban.Create(request.BankIban);
             if (BankIbanResult.IsFail)
-                return BankIbanResult;
+                return Result.Failure<Organizer>(BankIbanResult.Error!);
 
 
             // create identity user
             Result<string> createAppUserResult = await _identityService.RegisterAsync(request.Email, request.Password, UserRole.Organizer, cancellationToken);
             if(createAppUserResult.IsFail)
-                return createAppUserResult;
+                return Result.Failure<Organizer>(createAppUserResult.Error!);
             
             //create organizer
             Result<Organizer> organizerResult = Organizer.Create(request.Name, taxRegistrationNumberCreateResult.Value!, BankIbanResult.Value!);
@@ -59,7 +59,7 @@ namespace Application.Auth.RegisterOrganizerCommand
             Result deleteResult = await _identityService.DeleteAppUserAsync(createAppUserResult.Value!, cancellationToken);
             if(deleteResult.IsFail)
                 _logger.LogCritical(deleteResult.Error.Message);
-            return deleteResult;
+            return Result.Failure<Organizer>(deleteResult.Error!);
         }
     }
 }
