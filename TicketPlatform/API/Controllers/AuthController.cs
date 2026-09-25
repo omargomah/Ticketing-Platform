@@ -92,6 +92,57 @@ namespace API.Controllers
                 return Ok(result);
             return BadRequest(result);
         }
+        /// <summary>
+        /// Registers a new event organizer account.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/register-organizer
+        ///     {
+        ///        "email": "organizer@example.com",
+        ///        "name": "Global Events Co",
+        ///        "bankIban": "EG1234567890123456789012345",
+        ///        "taxRegistrationNumber": "987654321",
+        ///        "password": "Password123!",
+        ///        "confirmPassword": "Password123!"
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="command">The organizer registration payload containing organization details, tax ID, IBAN, and credentials.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>A <see cref="Result{T}"/> containing the created <see cref="Organizer"/> details on success.</returns>
+        /// <response code="200">
+        /// Organizer registered successfully.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": true,
+        ///   "value": {
+        ///     "id": "4ga95f64-5717-4562-b3fc-2c963f66afa7",
+        ///     "name": "Global Events Co",
+        ///     "email": "organizer@example.com",
+        ///     "bankIban": "EG1234567890123456789012345",
+        ///     "taxRegistrationNumber": "987654321"
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
+        /// <response code="400">
+        /// Registration failed due to validation errors (e.g., invalid IBAN, invalid tax registration number, password mismatch, or duplicate email).
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": false,
+        ///   "error": {
+        ///     "code": "Auth.InvalidRegistrationData",
+        ///     "message": "Tax registration number is invalid or already in use."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
         [HttpPost("register-organizer")]          
         [ProducesResponseType(typeof(Result<Organizer>), 200)]
         [ProducesResponseType(typeof(Result), 400)]
