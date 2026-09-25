@@ -8,6 +8,7 @@ using Application.Auth.ResetPasswordCommand;
 using Application.Auth.SendConfirmEmailCommand;
 using Application.Auth.SendResetPasswordEmailCommand;
 using Asp.Versioning;
+using Domain.Entities;
 using Domain.Shared;
 using Infrastructure.Options;
 using MediatR;
@@ -33,15 +34,19 @@ namespace API.Controllers
         }
      
         [HttpPost("register-attendee")]
-        public async Task<ActionResult<Result>> RegisterAttendee([FromBody] RegisterAttendeeCommand command, CancellationToken cancellationToken)
+        [ProducesResponseType(typeof(Result<Attendee>), 200)]
+        [ProducesResponseType(typeof(Result), 400)]
+        public async Task<ActionResult<Result<Attendee>>> RegisterAttendee([FromBody] RegisterAttendeeCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
             if (result.IsSuccess)
                 return Ok(result);
             return BadRequest(result);
         }
-        [HttpPost("register-organizer")]
-        public async Task<ActionResult<Result>> RegisterOrganizer([FromBody] RegisterOrganizerCommand command, CancellationToken cancellationToken)
+        [HttpPost("register-organizer")]          
+        [ProducesResponseType(typeof(Result<Organizer>), 200)]
+        [ProducesResponseType(typeof(Result), 400)]
+        public async Task<ActionResult<Result<Organizer>>> RegisterOrganizer([FromBody] RegisterOrganizerCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
             
@@ -52,7 +57,9 @@ namespace API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
+        [ProducesResponseType(typeof(Result<LoginResponse>), 200)]
+        [ProducesResponseType(typeof(Result), 400)]
+        public async Task<ActionResult<Result<LoginResponse>>> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
             if (result.IsFail)
@@ -73,6 +80,7 @@ namespace API.Controllers
 
         [HttpPost]
         [Route("send-confirm-email")]
+        [ProducesResponseType(200)]
         public async Task<IActionResult> SendConfirmEmail([FromBody] SendConfirmEmailCommand command, CancellationToken cancellationToken)
         {
             await _mediator.Send(command, cancellationToken);
@@ -81,6 +89,8 @@ namespace API.Controllers
 
         [HttpGet]
         [Route("confirm-email")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(Result), 400)]
         public async Task<IActionResult> ConfirmEmail([FromQuery] ConfirmEmailCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
@@ -92,6 +102,7 @@ namespace API.Controllers
         
         [HttpPost]
         [Route("send-reset-password-email")]
+        [ProducesResponseType(200)]
         public async Task<IActionResult> SendResetPasswordEmail([FromBody] SendResetPasswordEmailCommand command, CancellationToken cancellationToken)
         {
             await _mediator.Send(command, cancellationToken);
@@ -100,6 +111,8 @@ namespace API.Controllers
     
         [HttpPost]
         [Route("reset-password")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(Result), 400)]
         public async Task<ActionResult<Result>> ResetPassword([FromBody] ResetPasswordCommand command, CancellationToken cancellationToken)
         {
             Result result = await _mediator.Send(command, cancellationToken);
@@ -110,7 +123,9 @@ namespace API.Controllers
 
         [HttpPost]
         [Route("refresh")]
-        public async Task<IActionResult> Refresh()
+        [ProducesResponseType(typeof(Result<LoginResponse>), 200)]
+        [ProducesResponseType(typeof(Result), 400)]
+        public async Task<ActionResult<Result<LoginResponse>>> Refresh()
         {
             string? refreshToken =  Request.Cookies["refreshToken"];
            if(string.IsNullOrWhiteSpace(refreshToken))
@@ -132,6 +147,7 @@ namespace API.Controllers
         [Authorize]
         [HttpPost]
         [Route("logout")]
+        [ProducesResponseType(200)]
         public async Task<IActionResult> Logout()
         {
             string? providedToken = Request.Cookies["refreshToken"];

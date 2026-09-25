@@ -12,7 +12,7 @@ using System.Text;
 
 namespace Application.Auth.RegisterAttendeeCommand
 {
-    public class RegisterAttendeeCommandHandler : IRequestHandler<RegisterAttendeeCommand, Result>
+    public class RegisterAttendeeCommandHandler : IRequestHandler<RegisterAttendeeCommand, Result<Attendee>>
     {
         private readonly IIdentityService _identityService;
         private readonly ILogger<RegisterAttendeeCommandHandler> _logger;
@@ -29,12 +29,12 @@ namespace Application.Auth.RegisterAttendeeCommand
             _attendeeRepository = attendeeRepository;
             _unitOfWork = unitOfWork;
         }
-        public async Task<Result> Handle(RegisterAttendeeCommand request, CancellationToken cancellationToken)
+        public async Task<Result<Attendee>> Handle(RegisterAttendeeCommand request, CancellationToken cancellationToken)
         {
             // create identity user
             Result<string> createAppUserResult = await _identityService.RegisterAsync(request.Email,request.Password, UserRole.Attendee, cancellationToken);
             if(createAppUserResult.IsFail)
-                return createAppUserResult;
+                return Result.Failure<Attendee>(createAppUserResult.Error!);
             
             //create attendee
             Result<Attendee> attendeeResult = Attendee.Create(request.FName, request.LName);
@@ -50,7 +50,7 @@ namespace Application.Auth.RegisterAttendeeCommand
             Result deleteResult = await _identityService.DeleteAppUserAsync(createAppUserResult.Value!, cancellationToken);
             if(deleteResult.IsFail)
                 _logger.LogCritical(deleteResult.Error.Message);
-            return deleteResult;
+            return Result.Failure<Attendee>(deleteResult.Error!);
         }
     }
 }
