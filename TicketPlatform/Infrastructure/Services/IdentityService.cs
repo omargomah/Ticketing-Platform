@@ -237,7 +237,7 @@ namespace Infrastructure.Services
                 return;
             string token = await _userManager.GeneratePasswordResetTokenAsync(user);
             string resetPasswordToken = Uri.EscapeDataString(token);
-            string url = $"{_configuration["FrontUrl"]}/Auth/reset-password?userId={user.Id}&token={Uri.EscapeDataString(resetPasswordToken)}";
+            string url = $"{_configuration["FrontUrl"]}/Auth/reset-password?userId={user.Id}&token={resetPasswordToken}";
             await _emailService.SendResetPasswordEmailAsync(user.Email!, url, cancellationToken);
         }
         public async Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellation)
@@ -245,7 +245,8 @@ namespace Infrastructure.Services
             AppUser? user = await _userManager.FindByIdAsync(command.UserId);
             if (user is null)
                 return Result.Failure(Error.Create("User.NotFound", "User not found"));
-            IdentityResult result = await _userManager.ResetPasswordAsync(user, command.Token, command.NewPassword);
+            string actualToken = Uri.UnescapeDataString(command.Token);
+            IdentityResult result = await _userManager.ResetPasswordAsync(user, actualToken, command.NewPassword);
             if (!result.Succeeded)
                 return  Result.Failure(Error.Create("User.ResetPasswordFailed", string.Join(", ", result.Errors.Select(e => e.Description))));
             await _refreshTokenRepository.DeleteRefreshTokensByUserIdAsync(user.Id);
