@@ -376,10 +376,50 @@ namespace API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Refreshes JWT access token using the refresh token stored in the HttpOnly cookie.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/refresh
+        ///     Cookie: refreshToken=dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+        ///
+        /// Automatically reads the "refreshToken" cookie from the request headers and sets a new "refreshToken" cookie on success.
+        /// </remarks>
+        /// <returns>A <see cref="Result{T}"/> containing new access and refresh tokens on success.</returns>
+        /// <response code="200">
+        /// Tokens successfully refreshed. Returns new tokens and updates HttpOnly refresh token cookie.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": true,
+        ///   "value": {
+        ///     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ///     "refreshToken": "newRefreshTokenValue..."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
+        /// <response code="401">
+        /// Refresh token cookie is missing, invalid, or expired.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": false,
+        ///   "error": {
+        ///     "code": "Auth.InvalidRefreshToken",
+        ///     "message": "Refresh token is invalid or expired."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
         [HttpPost]
         [Route("refresh")]
         [ProducesResponseType(typeof(Result<LoginResponse>), 200)]
-        [ProducesResponseType(typeof(Result), 400)]
+        [ProducesResponseType(typeof(Result), 401)]
         public async Task<ActionResult<Result<LoginResponse>>> Refresh()
         {
             string? refreshToken =  Request.Cookies["refreshToken"];
