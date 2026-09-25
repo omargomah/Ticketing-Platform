@@ -439,10 +439,26 @@ namespace API.Controllers
             return Ok(refreshResult);
         }
 
+        /// <summary>
+        /// Logs out an authenticated user and revokes their refresh token.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/logout
+        ///     Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        ///     Cookie: refreshToken=dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+        ///
+        /// Revokes the refresh token and clears the "refreshToken" HttpOnly cookie from the user's browser.
+        /// </remarks>
+        /// <returns>An empty <see cref="IActionResult"/> indicating successful logout.</returns>
+        /// <response code="200">Logged out successfully and refresh token cookie cleared.</response>
+        /// <response code="401">User is unauthorized (missing or invalid Bearer access token).</response>
         [Authorize]
         [HttpPost]
         [Route("logout")]
         [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
         public async Task<IActionResult> Logout()
         {
             string? providedToken = Request.Cookies["refreshToken"];
