@@ -248,6 +248,42 @@ namespace API.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Confirms a user's email address using a verification token and user ID.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/v1.0/Auth/confirm-email?userId=3fa85f64-5717-4562-b3fc-2c963f66afa6&amp;token=cfToken123Sample
+        ///
+        /// </remarks>
+        /// <param name="command">Query parameters containing the userId and confirmation token.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>A <see cref="Result"/> indicating success or failure of email confirmation.</returns>
+        /// <response code="200">
+        /// Email confirmed successfully.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": true
+        /// }
+        /// </code>
+        /// </response>
+        /// <response code="400">
+        /// Confirmation failed due to an invalid or expired token, or invalid user ID.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": false,
+        ///   "error": {
+        ///     "code": "Auth.InvalidToken",
+        ///     "message": "The email confirmation token is invalid or expired."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
         [HttpGet]
         [Route("confirm-email")]
         [ProducesResponseType(200)]
