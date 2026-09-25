@@ -129,7 +129,7 @@ namespace Infrastructure.Services
                     _logger.LogCritical(ex, "An error occurred while refreshing the token.");
                     throw;
                 }
-                return Result.Success(new LoginResponse(true, null!, newRefreshToken.Token, await GenerateAccessTokenAsync(user)));
+                return Result.Success(new LoginResponse(newRefreshToken.Token, await GenerateAccessTokenAsync(user)));
             }
 
             await _emailService.SendWarningEmailThatRefreshTokenStealAsync(user.Email!,cancellationToken);
@@ -151,7 +151,11 @@ namespace Infrastructure.Services
 
             RefreshToken refreshToken = RefreshToken.Create(user.Id,DateTime.UtcNow.AddDays(_jwtConfiguration.Value.RefreshTokenExpireAfterDays));
 
-            return Result.Success(new LoginResponse(true,RefreshToken:refreshToken.Token , AccessToken: await GenerateAccessTokenAsync(user)));
+            await _refreshTokenRepository.AddAsync(refreshToken);
+
+            if (await _unitOfWork.SaveChangesAsync() == 0)
+                _logger.LogWarning("Failed to save refresh token.");
+            return Result.Success(new LoginResponse(refreshToken.Token , await GenerateAccessTokenAsync(user)));
         }
         private string GenerateJwtToken(IEnumerable<Claim> claims, TimeSpan expiresIn)
         {
