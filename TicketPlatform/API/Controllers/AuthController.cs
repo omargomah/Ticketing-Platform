@@ -297,6 +297,22 @@ namespace API.Controllers
             return Ok(result);
         }
         
+        /// <summary>
+        /// Initiates the password reset process by emailing a password reset link/token.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/send-reset-password-email
+        ///     {
+        ///        "email": "user@example.com"
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="command">Payload containing the email address of the account requesting a password reset.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>An empty <see cref="IActionResult"/> indicating that the reset password email request was processed.</returns>
+        /// <response code="200">Password reset email sent or queued successfully.</response>
         [HttpPost]
         [Route("send-reset-password-email")]
         [ProducesResponseType(200)]
