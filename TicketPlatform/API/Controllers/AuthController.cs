@@ -1,4 +1,4 @@
-﻿using Application.Auth.ConfirmEmailCommand;
+using Application.Auth.ConfirmEmailCommand;
 using Application.Auth.LoginUserCommand;
 using Application.Auth.LogoutCommand;
 using Application.Auth.RefreshTokenCommand;
@@ -33,6 +33,55 @@ namespace API.Controllers
             _jwtOptions = jwtOptions;
         }
      
+        /// <summary>
+        /// Registers a new attendee user account.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/register-attendee
+        ///     {
+        ///        "fName": "John",
+        ///        "lName": "Doe",
+        ///        "email": "john.doe@example.com",
+        ///        "password": "Password123!",
+        ///        "confirmPassword": "Password123!"
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="command">The attendee registration payload containing user details and credentials.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>A <see cref="Result{T}"/> containing the created <see cref="Attendee"/> details on success.</returns>
+        /// <response code="200">
+        /// Attendee registered successfully.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": true,
+        ///   "value": {
+        ///     "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        ///     "fName": "John",
+        ///     "lName": "Doe",
+        ///     "email": "john.doe@example.com"
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
+        /// <response code="400">
+        /// Registration failed due to validation errors (e.g., invalid email, password mismatch, or email already exists).
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": false,
+        ///   "error": {
+        ///     "code": "Auth.EmailAlreadyExists",
+        ///     "message": "The provided email is already registered."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
         [HttpPost("register-attendee")]
         [ProducesResponseType(typeof(Result<Attendee>), 200)]
         [ProducesResponseType(typeof(Result), 400)]
