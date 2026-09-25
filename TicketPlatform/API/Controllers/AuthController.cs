@@ -322,6 +322,48 @@ namespace API.Controllers
             return Ok();
         }
     
+        /// <summary>
+        /// Resets a user's password using a reset token, user ID, and new password.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/reset-password
+        ///     {
+        ///        "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        ///        "token": "resetToken123Sample",
+        ///        "newPassword": "NewSecurePassword123!",
+        ///        "confirmNewPassword": "NewSecurePassword123!"
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="command">Payload containing the userId, token, newPassword, and confirmNewPassword.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>A <see cref="Result"/> indicating success or failure of the password reset operation.</returns>
+        /// <response code="200">
+        /// Password reset successfully.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": true
+        /// }
+        /// </code>
+        /// </response>
+        /// <response code="400">
+        /// Password reset failed due to invalid token, expired token, or invalid new password format.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": false,
+        ///   "error": {
+        ///     "code": "Auth.PasswordResetFailed",
+        ///     "message": "Password reset token is invalid or expired."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
         [HttpPost]
         [Route("reset-password")]
         [ProducesResponseType(200)]
