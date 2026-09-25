@@ -223,6 +223,22 @@ namespace API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Sends an email verification link to the specified user email address.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/send-confirm-email
+        ///     {
+        ///        "email": "user@example.com"
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="command">Payload containing the recipient's email address.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>An empty <see cref="IActionResult"/> indicating that the request was processed.</returns>
+        /// <response code="200">Confirmation email sent or queued successfully.</response>
         [HttpPost]
         [Route("send-confirm-email")]
         [ProducesResponseType(200)]
