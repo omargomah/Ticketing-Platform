@@ -156,9 +156,54 @@ namespace API.Controllers
             return BadRequest(result);
         }
 
+        /// <summary>
+        /// Authenticates a user and issues access and refresh tokens.
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/v1.0/Auth/login
+        ///     {
+        ///        "email": "user@example.com",
+        ///        "password": "Password123!"
+        ///     }
+        ///
+        /// Upon successful authentication, a secure HttpOnly cookie named "refreshToken" is attached to the response.
+        /// </remarks>
+        /// <param name="command">Login credentials containing Email and Password.</param>
+        /// <param name="cancellationToken">Cancellation token to observe while executing the request.</param>
+        /// <returns>A <see cref="Result{T}"/> containing access token and refresh token details on success.</returns>
+        /// <response code="200">
+        /// Authentication successful. Returns access token and sets HttpOnly refresh token cookie.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": true,
+        ///   "value": {
+        ///     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ///     "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
+        /// <response code="401">
+        /// Authentication failed due to invalid credentials, unverified email, or locked account.
+        /// 
+        /// Sample response:
+        /// <code>
+        /// {
+        ///   "isSuccess": false,
+        ///   "error": {
+        ///     "code": "Auth.InvalidCredentials",
+        ///     "message": "Invalid email or password."
+        ///   }
+        /// }
+        /// </code>
+        /// </response>
         [HttpPost("login")]
         [ProducesResponseType(typeof(Result<LoginResponse>), 200)]
-        [ProducesResponseType(typeof(Result), 400)]
+        [ProducesResponseType(typeof(Result), 401)]
         public async Task<ActionResult<Result<LoginResponse>>> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
         {
             var result = await _mediator.Send(command, cancellationToken);
